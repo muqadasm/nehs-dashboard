@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NEHS Lead Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: #16213a;
+    --ink-soft: #3c4a63;
+    --paper: #f6f4ef;
+    --paper-raised: #ffffff;
+    --line: #dcd7cb;
+    --steel: #4c6178;
+    --steel-soft: #dbe3ea;
+    --gold: #c98a3c;
+    --gold-soft: #f3e2c8;
+    --sage: #4f7a5c;
+    --sage-soft: #dde9df;
+    --rust: #a8442f;
+    --rust-soft: #f3ddd6;
+    --grey-soft: #e7e3d8;
+    --shadow: 0 1px 2px rgba(22,33,58,.06), 0 8px 24px -12px rgba(22,33,58,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #eee9dd;
+      --ink-soft: #b9c2d4;
+      --paper: #12161f;
+      --paper-raised: #1a2029;
+      --line: #2b3242;
+      --steel: #8aa0b8;
+      --steel-soft: #253040;
+      --gold: #d9a25b;
+      --gold-soft: #3a2f1d;
+      --sage: #7fae8c;
+      --sage-soft: #1f2e22;
+      --rust: #d97a63;
+      --rust-soft: #3a2320;
+      --grey-soft: #212734;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 20px 60px;
+  }
+  h1, h2 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 20px; }
+  header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  header .eyebrow { display: block; font-family: "Inter"; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  #updated { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
+  #updated .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--sage); margin-right: 6px; position: relative; top: -1px; }
+  #updated.stale .dot { background: var(--rust); }
+
+  section { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; box-shadow: var(--shadow); }
+  section > h2 { font-size: 15px; font-weight: 600; letter-spacing: .01em; margin-bottom: 4px; }
+  section > .sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
+
+  .funnel { display: flex; flex-direction: column; gap: 9px; }
+  .frow { display: grid; grid-template-columns: 148px 1fr 46px; align-items: center; gap: 12px; }
+  .frow .flabel { font-size: 13px; color: var(--ink-soft); text-align: right; }
+  .frow.terminal .flabel { font-weight: 600; color: var(--ink); }
+  .ftrack { position: relative; height: 22px; background: var(--grey-soft); border-radius: 5px; overflow: hidden; }
+  .ffill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--steel); transition: width .5s ease; }
+  .frow.hot .ffill { background: var(--gold); }
+  .frow.won .ffill { background: var(--sage); }
+  .frow.lost .ffill { background: var(--rust); }
+  .fcount { font-size: 14px; font-weight: 600; text-align: right; }
+  @media (max-width: 560px) {
+    .frow { grid-template-columns: 92px 1fr 34px; }
+    .frow .flabel { font-size: 11.5px; }
+  }
+
+  .channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .ch { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .ch .name { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .pill { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+  .pill.ok { background: var(--sage-soft); color: var(--sage); }
+  .pill.stale { background: var(--rust-soft); color: var(--rust); }
+  .pill.never { background: var(--grey-soft); color: var(--ink-soft); }
+  .ch .meta { font-size: 12px; color: var(--ink-soft); }
+
+  #errList { display: flex; flex-direction: column; gap: 10px; }
+  .err { display: grid; grid-template-columns: 90px 1fr; gap: 12px; font-size: 13px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .err:first-child { border-top: none; padding-top: 0; }
+  .err .when { color: var(--ink-soft); font-size: 11.5px; padding-top: 2px; }
+  .err .src { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--rust); margin-bottom: 3px; }
+  .clean { font-size: 13px; color: var(--sage); display: flex; align-items: center; gap: 8px; }
+  .clean::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sage); display: inline-block; }
+
+  footer { font-size: 11.5px; color: var(--ink-soft); text-align: center; padding-top: 4px; }
+  a { color: inherit; }
+  img { max-width: 100%; }
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <span class="eyebrow">New England Home Solutions</span>
+      <h1>Lead Pipeline</h1>
+    </div>
+    <div id="updated" class="stale"><span class="dot"></span>Loading&hellip;</div>
+  </header>
+
+  <section>
+    <h2>Where leads are right now</h2>
+    <p class="sub">Every channel below funnels into this one pipeline, so this is the cross-platform count &mdash; how many leads have reached each stage.</p>
+    <div class="funnel" id="funnel"></div>
+  </section>
+
+  <section>
+    <h2>Channel health</h2>
+    <p class="sub">Last confirmed activity from each connected system.</p>
+    <div class="channels" id="channels"></div>
+  </section>
+
+  <section>
+    <h2>Needs attention</h2>
+    <p class="sub" id="errSub">&nbsp;</p>
+    <div id="errList"></div>
+  </section>
+
+  <footer>Refreshes automatically every 5 minutes &middot; pulled live from the NEHS webhook</footer>
+</div>
+
+<script>
+  const BASE = "https://script.google.com/macros/s/AKfycbzVdWg3IQsr0bmVzPH-Hx7dcrwOUQ1A0XBhXObIdheWSsSYu_ckuUnKP5gtg3sbQfh8/exec";
+
+  const STAGE_LABELS = {
+    new_lead: "New Lead",
+    ai_engaged: "AI Engaged",
+    qualified: "Qualified",
+    hot_lead: "Hot Lead",
+    appointment_booked: "Appointment Booked",
+    human_follow_up: "Human Follow-Up",
+    offer_made: "Offer Made",
+    under_contract: "Under Contract",
+    closed_won: "Closed Won",
+    nurture: "Nurture",
+    dnc_lost: "DNC / Lost",
+  };
+
+  const CHANNEL_LABELS = {
+    elevenlabs: "AI Voice Calls",
+    smartlead: "Cold Email",
+    smartercontact: "Cold SMS",
+  };
+
+  function timeAgo(iso) {
+    if (!iso) return "never";
+    const ms = Date.now() - new Date(iso).getTime();
+    const h = ms / 3600000;
+    if (h < 1) return Math.max(1, Math.round(h * 60)) + "m ago";
+    if (h < 48) return Math.round(h) + "h ago";
+    return Math.round(h / 24) + "d ago";
+  }
+
+  function renderFunnel(stats) {
+    const el = document.getElementById("funnel");
+    el.innerHTML = "";
+    const order = stats.stage_order;
+    const values = order.map((k) => stats.stages[k] || 0);
+    const max = Math.max(1, ...values);
+    order.forEach((key) => {
+      const count = stats.stages[key] || 0;
+      const row = document.createElement("div");
+      let cls = "frow";
+      if (key === "hot_lead") cls += " hot terminal";
+      if (key === "closed_won") cls += " won terminal";
+      if (key === "dnc_lost") cls += " lost";
+      row.className = cls;
+      row.innerHTML = `
+        <div class="flabel">${STAGE_LABELS[key] || key}</div>
+        <div class="ftrack"><div class="ffill" style="width:${(count / max) * 100}%"></div></div>
+        <div class="fcount num">${count}</div>`;
+      el.appendChild(row);
+    });
+  }
+
+  function renderChannels(health) {
+    const el = document.getElementById("channels");
+    el.innerHTML = "";
+    Object.keys(CHANNEL_LABELS).forEach((key) => {
+      const s = (health.sources && health.sources[key]) || { status: "not_yet_connected" };
+      const pillClass = s.status === "ok" ? "ok" : s.status === "stale" ? "stale" : "never";
+      const pillText = s.status === "ok" ? "Live" : s.status === "stale" ? "Needs check" : "Not yet";
+      const card = document.createElement("div");
+      card.className = "ch";
+      card.innerHTML = `
+        <div class="name">${CHANNEL_LABELS[key]}<span class="pill ${pillClass}">${pillText}</span></div>
+        <div class="meta">Last activity: ${timeAgo(s.last_success)}</div>`;
+      el.appendChild(card);
+    });
+  }
+
+  function renderErrors(health) {
+    const list = document.getElementById("errList");
+    const sub = document.getElementById("errSub");
+    const errs = health.recent_errors || [];
+    if (errs.length === 0) {
+      sub.textContent = "Nothing flagged right now.";
+      list.innerHTML = `<div class="clean">All systems reporting clean</div>`;
+      return;
+    }
+    sub.textContent = errs.length + " item(s) worth a manual look:";
+    list.innerHTML = "";
+    errs.slice(0, 6).forEach((e) => {
+      const row = document.createElement("div");
+      row.className = "err";
+      row.innerHTML = `
+        <div class="when">${timeAgo(e.at)}</div>
+        <div><span class="src">${e.source.replace(/_/g, " ")}</span><div>${e.message}</div></div>`;
+      list.appendChild(row);
+    });
+  }
+
+  async function load() {
+    const updatedEl = document.getElementById("updated");
+    try {
+      const [healthRes, statsRes] = await Promise.all([
+        fetch(BASE + "?action=health_status").then((r) => r.json()),
+        fetch(BASE + "?action=pipeline_stats").then((r) => r.json()),
+      ]);
+      renderFunnel(statsRes);
+      renderChannels(healthRes);
+      renderErrors(healthRes);
+      updatedEl.classList.remove("stale");
+      updatedEl.innerHTML = `<span class="dot"></span>Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    } catch (err) {
+      updatedEl.classList.add("stale");
+      updatedEl.innerHTML = `<span class="dot"></span>Couldn't refresh &mdash; showing last known data`;
+    }
+  }
+
+  load();
+  setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
