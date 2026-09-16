@@ -67,19 +67,22 @@
   section > h2 { font-size: 15px; font-weight: 600; letter-spacing: .01em; margin-bottom: 4px; }
   section > .sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
 
-  .funnel { display: flex; flex-direction: column; gap: 9px; }
-  .frow { display: grid; grid-template-columns: 148px 1fr 46px; align-items: center; gap: 12px; }
-  .frow .flabel { font-size: 13px; color: var(--ink-soft); text-align: right; }
-  .frow.terminal .flabel { font-weight: 600; color: var(--ink); }
-  .ftrack { position: relative; height: 22px; background: var(--grey-soft); border-radius: 5px; overflow: hidden; }
-  .ffill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--steel); transition: width .5s ease; }
-  .frow.hot .ffill { background: var(--gold); }
-  .frow.won .ffill { background: var(--sage); }
-  .frow.lost .ffill { background: var(--rust); }
-  .fcount { font-size: 14px; font-weight: 600; text-align: right; }
+  .funnel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .funnel-table th, .funnel-table td { padding: 7px 8px; text-align: right; }
+  .funnel-table th { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+  .funnel-table th:first-child, .funnel-table td.flabel { text-align: left; }
+  .funnel-table td.flabel { font-size: 13px; color: var(--ink); white-space: nowrap; }
+  .funnel-table tr.terminal td.flabel { font-weight: 600; }
+  .funnel-table tr:not(:last-child) td { border-bottom: 1px solid var(--line); }
+  .funnel-table td.num { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .funnel-table td.num.all { color: var(--ink); font-weight: 600; }
+  .funnel-table tr.hot td.num.all { color: var(--gold); }
+  .funnel-table tr.won td.num.all { color: var(--sage); }
+  .funnel-table tr.lost td.num.all { color: var(--rust); }
+  .funnel-table-wrap { overflow-x: auto; }
   @media (max-width: 560px) {
-    .frow { grid-template-columns: 92px 1fr 34px; }
-    .frow .flabel { font-size: 11.5px; }
+    .funnel-table { font-size: 12px; }
+    .funnel-table td.flabel { font-size: 12px; }
   }
 
   .channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
@@ -119,8 +122,13 @@
 
   <section>
     <h2>Where leads are right now</h2>
-    <p class="sub">Every channel below funnels into this one pipeline, so this is the cross-platform count &mdash; how many leads have reached each stage.</p>
-    <div class="funnel" id="funnel"></div>
+    <p class="sub">Every channel below funnels into this one pipeline, so this is the cross-platform count &mdash; how many leads <em>entered</em> each stage in the given window (All = everything currently in that stage, ever).</p>
+    <div class="funnel-table-wrap">
+      <table class="funnel-table">
+        <thead><tr><th>Stage</th><th>1 Day</th><th>7 Days</th><th>30 Days</th><th>All</th></tr></thead>
+        <tbody id="funnel"></tbody>
+      </table>
+    </div>
   </section>
 
   <section>
@@ -174,20 +182,24 @@
     const el = document.getElementById("funnel");
     el.innerHTML = "";
     const order = stats.stage_order;
-    const values = order.map((k) => stats.stages[k] || 0);
-    const max = Math.max(1, ...values);
+    const windows = stats.windows || { "1d": {}, "7d": {}, "30d": {} };
     order.forEach((key) => {
-      const count = stats.stages[key] || 0;
-      const row = document.createElement("div");
-      let cls = "frow";
-      if (key === "hot_lead") cls += " hot terminal";
-      if (key === "closed_won") cls += " won terminal";
-      if (key === "dnc_lost") cls += " lost";
+      const row = document.createElement("tr");
+      let cls = "";
+      if (key === "hot_lead") cls = "hot terminal";
+      if (key === "closed_won") cls = "won terminal";
+      if (key === "dnc_lost") cls = "lost";
       row.className = cls;
+      const d1 = (windows["1d"] && windows["1d"][key]) || 0;
+      const d7 = (windows["7d"] && windows["7d"][key]) || 0;
+      const d30 = (windows["30d"] && windows["30d"][key]) || 0;
+      const all = stats.stages[key] || 0;
       row.innerHTML = `
-        <div class="flabel">${STAGE_LABELS[key] || key}</div>
-        <div class="ftrack"><div class="ffill" style="width:${(count / max) * 100}%"></div></div>
-        <div class="fcount num">${count}</div>`;
+        <td class="flabel">${STAGE_LABELS[key] || key}</td>
+        <td class="num">${d1}</td>
+        <td class="num">${d7}</td>
+        <td class="num">${d30}</td>
+        <td class="num all">${all}</td>`;
       el.appendChild(row);
     });
   }
