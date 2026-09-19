@@ -85,6 +85,12 @@
     .funnel-table td.flabel { font-size: 12px; }
   }
 
+  .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
+  .intake-stat { border: 1px solid var(--line); border-radius: 10px; padding: 16px; text-align: center; }
+  .intake-stat .n { font-family: "Fraunces", Georgia, serif; font-size: 30px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .intake-stat .n.zero { color: var(--rust); }
+  .intake-stat .lbl { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); margin-top: 6px; }
+
   .channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
   .ch { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
   .ch .name { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
@@ -119,6 +125,12 @@
     </div>
     <div id="updated" class="stale"><span class="dot"></span>Loading&hellip;</div>
   </header>
+
+  <section>
+    <h2>New leads added to CRM</h2>
+    <p class="sub">Raw contact creation in GoHighLevel, independent of pipeline stage &mdash; this is the real signal for whether new leads are actually coming in.</p>
+    <div class="intake-grid" id="intake"></div>
+  </section>
 
   <section>
     <h2>Where leads are right now</h2>
@@ -204,6 +216,28 @@
     });
   }
 
+  function renderIntake(stats) {
+    const el = document.getElementById("intake");
+    el.innerHTML = "";
+    const ci = stats.contact_intake || {};
+    const items = [
+      { key: "1d", label: "Last 24h" },
+      { key: "7d", label: "Last 7 Days" },
+      { key: "30d", label: "Last 30 Days" },
+      { key: "all", label: "All-Time Total" },
+    ];
+    items.forEach((it) => {
+      const v = ci[it.key];
+      const isZero = it.key !== "all" && (v === 0 || v === null || v === undefined);
+      const div = document.createElement("div");
+      div.className = "intake-stat";
+      div.innerHTML = `
+        <div class="n${isZero ? " zero" : ""}">${v == null ? "&mdash;" : v.toLocaleString()}</div>
+        <div class="lbl">${it.label}</div>`;
+      el.appendChild(div);
+    });
+  }
+
   function renderChannels(health) {
     const el = document.getElementById("channels");
     el.innerHTML = "";
@@ -248,6 +282,7 @@
         fetch(BASE + "?action=health_status").then((r) => r.json()),
         fetch(BASE + "?action=pipeline_stats").then((r) => r.json()),
       ]);
+      renderIntake(statsRes);
       renderFunnel(statsRes);
       renderChannels(healthRes);
       renderErrors(healthRes);
